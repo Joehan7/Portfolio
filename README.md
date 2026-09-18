@@ -59,7 +59,9 @@ content/visuals.json holds diagram labels. scripts/generate-assets.mjs renders t
 
 ## Configure contact delivery
 
-Copy .env.example to .env.local and set:
+GitHub Pages and unconfigured normal hosting use FormSubmit's managed HTTPS form backend, addressed to `joehanantony@gmail.com`. No browser API key or Pages configuration change is needed. Confirm the recipient once using FormSubmit's "Activate Form" email. An activation-required response is treated as unavailable, never as successful delivery. Automated tests intercept delivery requests and do not send email.
+
+The existing server-side Resend API remains available for normal hosting. To use it instead, copy .env.example to .env.local and set:
 
 - RESEND_API_KEY
 - CONTACT_FROM — an address on a verified Resend sending domain
@@ -69,7 +71,9 @@ Copy .env.example to .env.local and set:
 
 The contact API checks same-origin requests, JSON format, a 16 KB payload ceiling, Zod validation, and a honeypot. Upstash supplies a shared limit of five attempts per hour. It uses Vercel’s overwritten client-IP header only on Vercel; other hosts use a conservative shared bucket. A limiter outage fails closed. No visitor text is used as HTML. Missing credentials never produce a delivered-message claim.
 
-Without these settings, the form reports that delivery is unavailable and presents the working mailto link. Tests do not send real email.
+Without these server settings, the form submits to FormSubmit. Client validation trims names/messages and enforces field limits; the existing honeypot is discarded locally and mapped to the managed provider's `_honey` field. FormSubmit supplies its own submission validation and spam filtering; browser validation and the local honeypot are not server-side abuse controls. Resend hosting retains its existing server validation and Upstash limit. The visitor email is used as Reply-To, never as the destination. Submissions time out after 15 seconds, cannot overlap, and retain entered values on failure. Success requires an explicit provider acknowledgement; it indicates acceptance for processing, not independently verified arrival in the recipient's inbox. The mailto fallback stays available. FormSubmit processes the submitted name, email and message and documents a 30-day submission retention period at https://formsubmit.co/documentation.
+
+If JavaScript is unavailable, the form's native POST action uses FormSubmit's standard endpoint and confirmation page. Visitor details are submitted in the request body rather than placed in the page URL.
 
 Set NEXT_PUBLIC_ENABLE_ANALYTICS=true only after deployment if you want Vercel Analytics and Speed Insights. They are disabled by default.
 
@@ -103,7 +107,7 @@ The existing design is preserved. Run `pnpm build:pages` to generate `out/` for 
 
 In the repository's Settings → Pages, select **GitHub Actions** as the source. `.github/workflows/pages.yml` deploys on `main` pushes or manual dispatch. The existing quality workflow remains separate. No deployment secrets are needed.
 
-GitHub Pages cannot execute `/api/contact`. The unchanged form validates input and shows its existing honest unavailable message with the existing email link. The server API source remains available in normal builds. Do not put server credentials in public build variables.
+GitHub Pages cannot execute `/api/contact`. The existing contact form submits directly to FormSubmit over HTTPS, retaining its email-link fallback and honest handling of activation, rejection, and transport failures. The server API source remains available in normal builds. Do not put server credentials in public build variables.
 
 For repository-path browser checks, run `pnpm exec playwright test --config=playwright.pages.config.ts` after exporting; this serves the actual static artifact on port 3002. The Firefox project remains enabled. `node scripts/serve-pages.mjs` previews the export at http://127.0.0.1:3002/Portfolio/.
 

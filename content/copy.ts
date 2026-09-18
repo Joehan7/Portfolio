@@ -109,7 +109,7 @@ export const copy = {
     messagePlaceholder: 'What would you like to work on?',
     send: 'send message',
     sending: 'sending message',
-    success: 'Sent. Your message has been delivered for Joehan to review.',
+    success: 'Sent. Your message has been accepted for Joehan to review.',
     unavailable: 'Message delivery is not configured yet. Please use the email link.',
     error: 'Your message could not be sent. Try again or use the email link.',
     limited: 'Too many attempts. Please try again in an hour or use the email link.',

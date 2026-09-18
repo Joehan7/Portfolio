@@ -1,10 +1,11 @@
 'use client';
 import { useForm, type Resolver, type FieldErrors } from 'react-hook-form';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowUpRight, Check } from 'lucide-react';
 import type { ContactInput } from '@/lib/contact';
 import { copy } from '@/content/copy';
 import { profile } from '@/content/profile';
+import { sendContact } from '@/lib/contactDelivery';
 const resolveContact: Resolver<ContactInput> = async (values) => {
   const { contactSchema } = await import('@/lib/contact');
   const parsed = contactSchema.safeParse(values);
@@ -17,6 +18,7 @@ const resolveContact: Resolver<ContactInput> = async (values) => {
   return { values: {}, errors };
 };
 export function ContactForm({ enabled }: { enabled: boolean }) {
+  const inFlight = useRef(false);
   const [status, setStatus] = useState(''),
     [sent, setSent] = useState(false);
   const {
@@ -29,41 +31,49 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
     defaultValues: { website: '' },
   });
   const submit = async (data: ContactInput) => {
-    if (!enabled) {
-      setStatus(copy.contact.unavailable);
-      return;
-    }
+    if (inFlight.current || sent) return;
+    inFlight.current = true;
     setStatus(copy.contact.sending);
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (response.ok) {
+      const result = await sendContact(data, enabled, window.location.href);
+      if (result === 'accepted') {
         setSent(true);
         setStatus(copy.contact.success);
         reset();
       } else {
         setStatus(
-          response.status === 429
-            ? copy.contact.limited
-            : response.status === 503
-              ? copy.contact.unavailable
-              : copy.contact.error,
+          result === 'discarded'
+            ? ''
+            : result === 'limited'
+              ? copy.contact.limited
+              : result === 'activation' || result === 'unavailable'
+                ? copy.contact.unavailable
+                : copy.contact.error,
         );
       }
     } catch {
       setStatus(copy.contact.error);
+    } finally {
+      inFlight.current = false;
     }
   };
   return (
-    <form className="contact-form" onSubmit={handleSubmit(submit)} noValidate>
+    <form
+      className="contact-form"
+      action={`https://formsubmit.co/${profile.email}`}
+      method="POST"
+      onSubmit={(event) => void handleSubmit(submit)(event)}
+      aria-busy={isSubmitting}
+      noValidate
+    >
       <div className="form-pair">
         <div className="form-field">
           <label htmlFor="contact-name">{copy.contact.name}</label>
           <input
             id="contact-name"
+            required
+            minLength={2}
+            maxLength={100}
             autoComplete="name"
             placeholder={copy.contact.namePlaceholder}
             aria-invalid={!!errors.name}
@@ -81,6 +91,8 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
           <input
             id="contact-email"
             type="email"
+            required
+            maxLength={254}
             autoComplete="email"
             placeholder={copy.contact.emailPlaceholder}
             aria-invalid={!!errors.email}
@@ -99,6 +111,9 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
         <textarea
           id="contact-message"
           rows={4}
+          required
+          minLength={10}
+          maxLength={5000}
           placeholder={copy.contact.messagePlaceholder}
           aria-invalid={!!errors.message}
           aria-describedby={errors.message ? 'message-error' : undefined}
@@ -112,7 +127,13 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
       </div>
       <div className="honeypot" aria-hidden="true">
         <label htmlFor="website">{copy.contact.website}</label>
-        <input id="website" tabIndex={-1} autoComplete="off" {...register('website')} />
+        <input
+          id="website"
+          tabIndex={-1}
+          autoComplete="off"
+          maxLength={200}
+          {...register('website')}
+        />
       </div>
       <div className="form-actions">
         <button type="submit" className="button primary" disabled={isSubmitting || sent}>
@@ -120,13 +141,7 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
           {isSubmitting ? copy.contact.sending : copy.contact.send}
         </button>
         <p>
-          {enabled ? copy.contact.notice : copy.contact.unavailable}
-          {!enabled && (
-            <>
-              {' '}
-              <a href={`mailto:${profile.email}`}>{copy.contact.emailLink}</a>
-            </>
-          )}
+          {copy.contact.notice} <a href={`mailto:${profile.email}`}>{copy.contact.emailLink}</a>
         </p>
       </div>
       <div className="form-status mono" role="status" aria-live="polite">

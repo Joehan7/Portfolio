@@ -115,21 +115,165 @@ test('live search and no results', async ({ page }) => {
   await expect(search).toHaveValue('');
 });
 test('contact form validates and never fakes delivery', async ({ page }) => {
+  // Keep automated tests isolated from real email; exercise the actual activation response.
+  let submissions = 0;
+  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+    submissions++;
+    await route.fulfill({ json: { success: 'false', message: 'This form needs Activation.' } });
+  });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/contact');
   await expect(page.locator('html')).toHaveAttribute('data-motion', /reduced|full/);
   await page.getByRole('button', { name: 'send message' }).click();
   await expect(page.getByText('Enter at least 2 characters.')).toBeVisible();
+  expect(submissions).toBe(0);
   await page.getByLabel('name', { exact: true }).fill('Local Test');
   await page.getByLabel('email address', { exact: true }).fill('local@example.com');
   await page
     .getByLabel('message', { exact: true })
-    .fill('This verifies the unconfigured local delivery state.');
+    .fill('This verifies the recipient verification state.');
   await page.getByRole('button', { name: 'send message' }).click();
   await expect(page.locator('.form-status')).toHaveText(
     'Message delivery is not configured yet. Please use the email link.',
   );
+  expect(submissions).toBe(1);
+  await expect(page.getByLabel('message', { exact: true })).toHaveValue(
+    'This verifies the recipient verification state.',
+  );
+  await expect(page.getByRole('button', { name: 'send message' })).toBeEnabled();
 });
+test('contact submission waits for acknowledgement and prevents duplicate sends', async ({
+  page,
+}) => {
+  let submissions = 0;
+  let release = () => {};
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+    submissions++;
+    const body = route.request().postDataJSON();
+    expect(body.email).toBe('visitor@example.com');
+    expect(body._replyto).toBe('visitor@example.com');
+    expect(body._honey).toBe('');
+    expect(body).not.toHaveProperty('to');
+    await pending;
+    await route.fulfill({
+      json: { success: 'true', message: 'The form was submitted successfully.' },
+    });
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/contact');
+  await expect(page.locator('html')).toHaveAttribute('data-motion', /reduced|full/);
+  await page.getByLabel('name', { exact: true }).fill('Browser Test');
+  await page.getByLabel('email address', { exact: true }).fill('visitor@example.com');
+  await page.getByLabel('message', { exact: true }).fill('A browser submission verification.');
+  await page.getByRole('button', { name: 'send message' }).click();
+  await expect.poll(() => submissions).toBe(1);
+  await expect(page.locator('.contact-form')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByRole('button', { name: 'sending message' })).toBeDisabled();
+  await expect(page.locator('.form-status')).toHaveText('sending message');
+  await page.locator('.contact-form').evaluate((form) => {
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  release();
+  await expect(page.locator('.form-status')).toHaveText(
+    'Sent. Your message has been accepted for Joehan to review.',
+  );
+  expect(submissions).toBe(1);
+  await expect(page.getByLabel('message', { exact: true })).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'send message' })).toBeDisabled();
+});
+
+test('contact errors preserve the message and allow a successful retry', async ({ page }) => {
+  let submissions = 0;
+  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+    submissions++;
+    if (submissions === 1) return route.abort('failed');
+    if (submissions === 2) return route.fulfill({ status: 429, json: { success: false } });
+    if (submissions === 3)
+      return route.fulfill({ json: { success: 'false', message: 'Rejected.' } });
+    await route.fulfill({ json: { success: true } });
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/contact');
+  await expect(page.locator('html')).toHaveAttribute('data-motion', /reduced|full/);
+  await page.getByLabel('name', { exact: true }).fill('Browser Test');
+  await page.getByLabel('email address', { exact: true }).fill('visitor@example.com');
+  const message = page.getByLabel('message', { exact: true });
+  await message.fill('Keep this message available after an error.');
+  for (const expected of [
+    'Your message could not be sent. Try again or use the email link.',
+    'Too many attempts. Please try again in an hour or use the email link.',
+    'Your message could not be sent. Try again or use the email link.',
+  ]) {
+    await page.getByRole('button', { name: 'send message' }).click();
+    await expect(page.locator('.form-status')).toHaveText(expected);
+    await expect(message).toHaveValue('Keep this message available after an error.');
+    await expect(page.getByRole('button', { name: 'send message' })).toBeEnabled();
+    await expect(page.locator('.contact-form .form-actions a')).toHaveAttribute(
+      'href',
+      'mailto:joehanantony@gmail.com',
+    );
+  }
+  await page.getByRole('button', { name: 'send message' }).click();
+  await expect(page.locator('.form-status')).toHaveText(
+    'Sent. Your message has been accepted for Joehan to review.',
+  );
+  expect(submissions).toBe(4);
+});
+
+test('homepage contact uses the same managed delivery without a local API', async ({ page }) => {
+  let endpoint = '';
+  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+    endpoint = route.request().url();
+    await route.fulfill({ json: { success: true } });
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-motion', /reduced|full/);
+  await page.getByLabel('name', { exact: true }).fill('Home Contact Test');
+  await page.getByLabel('email address', { exact: true }).fill('visitor@example.com');
+  await page.getByLabel('message', { exact: true }).fill('A message submitted from the homepage.');
+  await page.getByRole('button', { name: 'send message' }).click();
+  await expect(page.locator('.form-status')).toHaveText(
+    'Sent. Your message has been accepted for Joehan to review.',
+  );
+  expect(endpoint).toBe('https://formsubmit.co/ajax/joehanantony@gmail.com');
+});
+
+test('contact without JavaScript posts privately to the managed backend', async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    let submission: Record<string, string> | undefined;
+    await page.route('https://formsubmit.co/**', async (route) => {
+      expect(route.request().method()).toBe('POST');
+      expect(route.request().url()).toBe('https://formsubmit.co/joehanantony@gmail.com');
+      submission = Object.fromEntries(new URLSearchParams(route.request().postData() || ''));
+      await route.fulfill({ contentType: 'text/html', body: '<p>Backend confirmation page</p>' });
+    });
+    const prefix = process.env.TEST_BASE_PATH || '';
+    await page.goto(new URL(`${prefix}/contact/`, baseURL).href);
+    await page.getByLabel('name', { exact: true }).fill('No JavaScript Test');
+    await page.getByLabel('email address', { exact: true }).fill('visitor@example.com');
+    await page.getByLabel('message', { exact: true }).fill('Native POST fallback verification.');
+    await page.getByRole('button', { name: 'send message' }).click();
+    await expect(page.getByText('Backend confirmation page')).toBeVisible();
+    expect(submission).toMatchObject({
+      name: 'No JavaScript Test',
+      email: 'visitor@example.com',
+      message: 'Native POST fallback verification.',
+    });
+    expect(new URL(page.url()).search).toBe('');
+  } finally {
+    await context.close();
+  }
+});
+
 test('motion toggle persists and disables moving features', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
