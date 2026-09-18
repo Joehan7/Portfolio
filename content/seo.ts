@@ -39,13 +39,13 @@ export function pageMetadata(
   path: string,
   description = copy.seo.description,
 ): Metadata {
-  const image = `${path === '/' ? '' : path}/opengraph-image`;
+  const image = `${path === '/' ? '' : path}/opengraph-image${process.env.GITHUB_PAGES === 'true' ? '.png' : ''}`;
   return {
     title,
     description,
-    alternates: { canonical: path },
-    openGraph: { title, description, url: path, images: [image] },
-    twitter: { card: 'summary_large_image', title, description, images: [image] },
+    alternates: { canonical: siteUrl + path },
+    openGraph: { title, description, url: siteUrl + path, images: [siteUrl + image] },
+    twitter: { card: 'summary_large_image', title, description, images: [siteUrl + image] },
   };
 }
 export function breadcrumbs(name: string, path: string) {

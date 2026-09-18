@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   outputDir: './test-results-cross',
-  testMatch: ['site.spec.ts'],
+  testMatch: ['site.spec.ts', 'webgl.spec.ts'],
   workers: 1,
   timeout: 60000,
   use: {

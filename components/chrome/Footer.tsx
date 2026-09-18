@@ -1,4 +1,5 @@
 'use client';
+import { assetPath } from '@/lib/assetPath';
 import { ArrowUp, ArrowUpRight, Copy, Check, Pause, Play } from 'lucide-react';
 import { useState } from 'react';
 import { profile } from '@/content/profile';
@@ -75,8 +76,8 @@ export function Footer() {
           <a href={profile.resumePdf} download>
             {copy.hero.resume}
           </a>
-          <a href="/llms.txt">{copy.footer.llms}</a>
-          <a href="/sitemap.xml">{copy.footer.sitemap}</a>
+          <a href={assetPath('/llms.txt')}>{copy.footer.llms}</a>
+          <a href={assetPath('/sitemap.xml')}>{copy.footer.sitemap}</a>
         </div>
       </div>
       <div className="footer-bottom mono">

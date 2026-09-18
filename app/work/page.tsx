@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { PagesWorkIndex } from '@/components/sections/PagesWorkIndex';
 import { WorkIndex } from '@/components/sections/WorkIndex';
 import { copy } from '@/content/copy';
 import { pageMetadata } from '@/content/seo';
@@ -22,7 +23,7 @@ export default function WorkPage({
       <h1>{copy.work.indexTitle}</h1>
       <p className="page-intro">{copy.work.indexIntro}</p>
       <Suspense fallback={<WorkIndex />}>
-        <Content searchParams={searchParams} />
+        {process.env.GITHUB_PAGES === 'true' ? <PagesWorkIndex /> : <Content searchParams={searchParams} />}
       </Suspense>
     </main>
   );

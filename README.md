@@ -95,3 +95,16 @@ See QA-REPORT.md for measured results, known limitations, and prioritised follow
 With the production server running, run `node scripts/frame-audit.mjs current`. This records three five-second scroll samples using the same viewport and CDP input. The report measures main-thread RAF pacing and style/layout/script time; it does not claim physical display FPS. Run `node scripts/bundle-budget.mjs` for initial gzip size and `node scripts/audit.mjs` for a local mobile Lighthouse audit. Avoid running browser suites concurrently with performance audits.
 "# Portfolio" 
 "# Portfolio" 
+
+
+## GitHub Pages
+
+The existing design is preserved. Run `pnpm build:pages` to generate `out/` for https://joehan7.github.io/Portfolio/. The build sets `/Portfolio`, exports all nine pages and sharing images, retains the custom 404, and verifies the artifact. `pnpm dev`, `pnpm build`, and `pnpm start` continue using ordinary server hosting without a base path.
+
+In the repository's Settings → Pages, select **GitHub Actions** as the source. `.github/workflows/pages.yml` deploys on `main` pushes or manual dispatch. The existing quality workflow remains separate. No deployment secrets are needed.
+
+GitHub Pages cannot execute `/api/contact`. The unchanged form validates input and shows its existing honest unavailable message with the existing email link. The server API source remains available in normal builds. Do not put server credentials in public build variables.
+
+For repository-path browser checks, run `pnpm exec playwright test --config=playwright.pages.config.ts` after exporting; this serves the actual static artifact on port 3002. The Firefox project remains enabled. `node scripts/serve-pages.mjs` previews the export at http://127.0.0.1:3002/Portfolio/.
+
+See the deployment report supplied with this delivery for the exact diff, validation results, limitations, and commit/push commands.

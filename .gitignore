@@ -9,3 +9,7 @@ playwright-report/
 reports/
 
 test-results-cross/
+
+out/
+.next-pages/
+test-results-pages*/

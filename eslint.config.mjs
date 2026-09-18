@@ -9,6 +9,9 @@ export default defineConfig([
   { rules: { 'react-hooks/set-state-in-effect': 'off' } },
   globalIgnores([
     '.next/**',
+    '.next-pages/**',
+    'out/**',
+    'test-results-pages*/**',
     'node_modules/**',
     'test-results/**',
     'playwright-report/**',

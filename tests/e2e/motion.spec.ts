@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import fs from 'node:fs';
 test('full motion: hover response, pinned rail and progress', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });

@@ -1,3 +1,4 @@
+import { assetPath } from '@/lib/assetPath';
 import type { Project } from './types';
 export const projects: Project[] = [
   {
@@ -21,7 +22,7 @@ export const projects: Project[] = [
     domains: ['Security operations', 'AI & agents'],
     links: [],
     media: {
-      src: '/projects/soc.webp',
+      src: assetPath('/projects/soc.webp'),
       alt: 'Concept diagram: EDR alerts pass through classification, severity scoring and explanation to an analyst.',
     },
     featured: true,
@@ -48,7 +49,7 @@ export const projects: Project[] = [
     domains: ['Engineering', 'Blockchain / Web3'],
     links: [],
     media: {
-      src: '/projects/subscription.webp',
+      src: assetPath('/projects/subscription.webp'),
       alt: 'Concept diagram of the subscription lifecycle: payment, onboarding, active access and expiry, with webhook and polling paths.',
     },
     featured: true,
@@ -75,7 +76,7 @@ export const projects: Project[] = [
     domains: ['AI & agents', 'Engineering'],
     links: [],
     media: {
-      src: '/projects/adpilot.webp',
+      src: assetPath('/projects/adpilot.webp'),
       alt: 'Concept diagram: prompts, URLs and source content flow into agentic workflows for content, campaigns and brands.',
     },
     featured: true,
@@ -101,7 +102,7 @@ export const projects: Project[] = [
     domains: ['Application security', 'Engineering'],
     links: [],
     media: {
-      src: '/projects/password.webp',
+      src: assetPath('/projects/password.webp'),
       alt: 'Concept diagram of three password evaluation inputs: entropy, dictionary analysis and pattern analysis, leading to actionable feedback.',
     },
     featured: true,

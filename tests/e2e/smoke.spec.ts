@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 test('home is rendered and accessible', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });

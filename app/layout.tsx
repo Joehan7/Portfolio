@@ -1,3 +1,4 @@
+import { assetPath } from '@/lib/assetPath';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { profile } from '@/content/profile';
@@ -32,14 +33,15 @@ export const metadata: Metadata = {
   description: copy.seo.description,
   alternates: { canonical: '/' },
   openGraph: {
+    ...(process.env.GITHUB_PAGES === 'true' ? { images: [siteUrl + '/opengraph-image.png'] } : {}),
     type: 'website',
     locale: 'en_US',
     siteName: copy.brand,
     title: profile.name,
     description: copy.seo.description,
   },
-  icons: { icon: '/icon.svg' },
-  twitter: { card: 'summary_large_image' },
+  icons: { icon: assetPath('/icon.svg') },
+  twitter: { card: 'summary_large_image', ...(process.env.GITHUB_PAGES === 'true' ? { images: [siteUrl + '/opengraph-image.png'] } : {}) },
 };
 export const viewport: Viewport = { colorScheme: 'dark', width: 'device-width', initialScale: 1 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

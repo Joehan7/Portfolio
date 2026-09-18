@@ -4,10 +4,10 @@ import os
 
 root = Path(__file__).resolve().parents[1]
 destination = root.parent / "signal-source.zip"
-excluded = {"node_modules", ".next", ".git", ".vercel", "test-results", "test-results-cross", "playwright-report", "__pycache__"}
+excluded = {"node_modules", ".next", ".next-pages", "out", "test-results-pages", ".git", ".vercel", "test-results", "test-results-cross", "playwright-report", "__pycache__"}
 with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
     for folder, directories, filenames in os.walk(root):
-        directories[:] = [name for name in directories if name not in excluded]
+        directories[:] = [name for name in directories if name not in excluded and not name.startswith("test-results-pages")]
         for name in filenames:
             if name.endswith(".tsbuildinfo") or (name.startswith(".env") and name != ".env.example"):
                 continue

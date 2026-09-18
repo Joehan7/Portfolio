@@ -20,7 +20,7 @@ export const contactSchema = z.object({
 });
 export type ContactInput = z.infer<typeof contactSchema>;
 export const contactReady = () =>
-  Boolean(
+  process.env.GITHUB_PAGES !== 'true' && Boolean(
     process.env.RESEND_API_KEY &&
     process.env.CONTACT_FROM &&
     process.env.UPSTASH_REDIS_REST_URL &&

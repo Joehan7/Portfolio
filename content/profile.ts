@@ -1,3 +1,4 @@
+import { assetPath } from '@/lib/assetPath';
 import type { Profile } from './types';
 export const profile: Profile = {
   name: 'Joehan Antony Fernando J',
@@ -13,5 +14,5 @@ export const profile: Profile = {
   phone: '+91 8754442312',
   availability: null,
   socials: [],
-  resumePdf: '/resume.pdf',
+  resumePdf: assetPath('/resume.pdf'),
 };

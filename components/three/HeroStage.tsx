@@ -1,9 +1,23 @@
 'use client';
+import { assetPath } from '@/lib/assetPath';
 import { useEffect, useRef, useState, Component, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useSite } from '@/components/chrome/Providers';
 import { copy } from '@/content/copy';
+// Three r180 requires WebGL2. Do not mount its renderer on unsupported devices.
+function supportsWebGL() {
+  try {
+    const context = document.createElement('canvas').getContext('webgl2', {
+      antialias: false, alpha: true, powerPreference: 'high-performance',
+    });
+    if (!context) return false;
+    context.getExtension('WEBGL_lose_context')?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
 const HeroField = dynamic(() => import('./HeroField'), { ssr: false });
 class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -26,7 +40,7 @@ export function HeroStage() {
     if (!node) return;
     const nav = navigator as Navigator & { deviceMemory?: number };
     setEligible(
-      matchMedia('(pointer: fine) and (min-width: 900px)').matches && (nav.deviceMemory ?? 8) >= 4,
+      matchMedia('(pointer: fine) and (min-width: 900px)').matches && (nav.deviceMemory ?? 8) >= 4 && supportsWebGL(),
     );
     const io = new IntersectionObserver(([entry]) => {
       setVisible(entry.isIntersecting);
@@ -47,7 +61,7 @@ export function HeroStage() {
         <span>{eligible && !reduced ? copy.hero.mode : copy.hero.static}</span>
       </div>
       <Image
-        src="/hero-poster.webp"
+        src={assetPath('/hero-poster.webp')}
         alt=""
         fill
         sizes="(max-width: 767px) 100vw, 58vw"
