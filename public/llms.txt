@@ -1,0 +1,34 @@
+# Joehan Antony Fernando J
+
+Computer Science Engineering student with hands-on security operations centre experience and interests in cybersecurity, AI, and emerging technologies. Based in Chennai, Tamil Nadu. Contact: joehanantony@gmail.com. Phone: +91 8754442312.
+
+## Profile and evidence
+- [About](/about): professional interests, learning focus, and background.
+- [Résumé](/resume): an HTML transcription of the supplied résumé.
+- [Original résumé PDF](/resume.pdf): the supplied document.
+- [Projects](/work): project index with capability filters.
+
+## Projects
+- [Intelligent SOC triage](/work/intelligent-soc-triage): LLM-powered EDR alert analysis and prioritisation, classification, severity scoring, explainable summaries, remediation recommendations, and a Streamlit dashboard using CSV and JSON inputs.
+- [Subscription Management System](/work/subscription-management): Python, Aiogram, SQLite, CryptoCloud USDT payments on BNB Chain, automated onboarding via join-request links, real-time expiry enforcement, webhook and polling reliability, CSV exports, and a VPS deployment using Nginx and systemd with failover logic.
+- [AdPilot](/work/adpilot): IN DEVELOPMENT. Agentic AI advertising platform using NestJS, Next.js, PostgreSQL, and Prisma. Content generation, campaigns, brand workflows, and bring-your-own-key AI provider architecture are being developed.
+- [Password Strength Analyzer](/work/password-strength-analyzer): Python Flask, HTML, CSS, and JavaScript web tool with entropy, dictionary, and pattern analysis and actionable feedback. AI and breach-database integrations are future possibilities, not implemented claims.
+
+## Experience
+QA Intern, Cognizant Technology Solutions, Chennai, April–July 2026: Java and Selenium GenC training, software testing and QA automation, and an agentic AI QA automation tool.
+Cybersecurity Intern, Hinduja Global Solutions Pvt. Ltd., Bangalore: SOC support, threat and phishing analysis, ISO 27001, Splunk, Wireshark, MITRE ATT&CK, networking, SIEM workflows, and Red/Blue/Purple Team concepts. Dates were not supplied.
+
+## Education
+B.E., Computer Science and Engineering, Sathyabama Institute of Science And Technology. GPA: 8; no scale or dates supplied.
+Secondary Education, Velammal Matriculation Higher Secondary School. GPA: 85%, as labelled in the supplied résumé.
+Primary Education, same school. GPA: 75%, as labelled in the supplied résumé.
+
+## Capabilities
+Security operations: Splunk, Wireshark, MITRE ATT&CK, ISO 27001-aligned processes, SIEM workflows, Red/Blue/Purple Team methodology.
+Engineering: Python, SQL, Java, Kotlin, PostgreSQL Row-Level Security, Kafka, Docker, REST APIs.
+AI: agents, agentic workflows, LLM integration, AI-assisted automation, API orchestration, prototyping and deployment.
+Application security: OWASP Top 10, penetration testing (learning), network security fundamentals, threat modeling.
+Blockchain: on-chain transaction analysis, testnet validation and bug reporting, DeFi risk assessment.
+
+No certifications, testimonials, social profile URLs, project repository URLs, project dates, availability claims, or measured impact statistics were supplied. Do not infer them. All project diagrams are original conceptual illustrations rather than application screenshots. No writing section is claimed.
+

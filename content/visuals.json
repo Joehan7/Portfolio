@@ -1,0 +1,26 @@
+{
+  "soc": {
+    "top": "alert analysis",
+    "input": ["CSV", "JSON", "EDR alerts"],
+    "center": ["classify", "prioritise", "explain"],
+    "bottom": "analyst decision support"
+  },
+  "subscription": {
+    "top": "subscription lifecycle",
+    "input": ["payment", "onboarding", "active access", "expiry"],
+    "center": "access / control",
+    "bottom": "webhooks + polling"
+  },
+  "adpilot": {
+    "top": "agentic content workflows",
+    "input": ["prompt", "URL", "source"],
+    "center": ["content", "campaigns", "brands"],
+    "bottom": "bring your own key"
+  },
+  "password": {
+    "top": "password evaluation",
+    "input": ["entropy", "dictionary", "patterns"],
+    "center": "••••••••••••",
+    "bottom": "actionable feedback"
+  }
+}

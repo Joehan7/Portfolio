@@ -1,0 +1,32 @@
+name: Verify Signal
+on:
+  push:
+  pull_request:
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Static checks
+        run: pnpm lint && pnpm test && pnpm build
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Production browser and accessibility checks
+        run: pnpm test:smoke
+      - name: Cross-browser accessibility and interaction checks
+        run: pnpm exec playwright test --config playwright.cross.config.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-reports
+          path: |
+            reports/
+            test-results/
+            test-results-cross/
