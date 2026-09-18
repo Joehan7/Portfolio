@@ -114,12 +114,20 @@ test('live search and no results', async ({ page }) => {
   await page.getByRole('button', { name: 'clear search' }).click();
   await expect(search).toHaveValue('');
 });
+const contactEndpoint = 'https://contact.example.com/api/contact';
+async function configureContact(page: import('@playwright/test').Page) {
+  await page.route('**/contact-delivery.json', (route) =>
+    route.fulfill({ json: { endpoint: contactEndpoint } }),
+  );
+}
+
 test('contact form validates and never fakes delivery', async ({ page }) => {
-  // Keep automated tests isolated from real email; exercise the actual activation response.
+  // Keep automated tests isolated from real email; exercise missing backend credentials.
   let submissions = 0;
-  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+  await configureContact(page);
+  await page.route(contactEndpoint, async (route) => {
     submissions++;
-    await route.fulfill({ json: { success: 'false', message: 'This form needs Activation.' } });
+    await route.fulfill({ status: 503, json: { message: 'Delivery unavailable.' } });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/contact');
@@ -131,14 +139,14 @@ test('contact form validates and never fakes delivery', async ({ page }) => {
   await page.getByLabel('email address', { exact: true }).fill('local@example.com');
   await page
     .getByLabel('message', { exact: true })
-    .fill('This verifies the recipient verification state.');
+    .fill('This verifies the unavailable backend state.');
   await page.getByRole('button', { name: 'send message' }).click();
   await expect(page.locator('.form-status')).toHaveText(
     'Message delivery is not configured yet. Please use the email link.',
   );
   expect(submissions).toBe(1);
   await expect(page.getByLabel('message', { exact: true })).toHaveValue(
-    'This verifies the recipient verification state.',
+    'This verifies the unavailable backend state.',
   );
   await expect(page.getByRole('button', { name: 'send message' })).toBeEnabled();
 });
@@ -150,16 +158,16 @@ test('contact submission waits for acknowledgement and prevents duplicate sends'
   const pending = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+  await configureContact(page);
+  await page.route(contactEndpoint, async (route) => {
     submissions++;
     const body = route.request().postDataJSON();
     expect(body.email).toBe('visitor@example.com');
-    expect(body._replyto).toBe('visitor@example.com');
-    expect(body._honey).toBe('');
+    expect(body.website).toBe('');
     expect(body).not.toHaveProperty('to');
     await pending;
     await route.fulfill({
-      json: { success: 'true', message: 'The form was submitted successfully.' },
+      json: { message: 'Sent. Your message has been accepted for Joehan to review.' },
     });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -187,13 +195,15 @@ test('contact submission waits for acknowledgement and prevents duplicate sends'
 
 test('contact errors preserve the message and allow a successful retry', async ({ page }) => {
   let submissions = 0;
-  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+  await configureContact(page);
+  await page.route(contactEndpoint, async (route) => {
     submissions++;
     if (submissions === 1) return route.abort('failed');
     if (submissions === 2) return route.fulfill({ status: 429, json: { success: false } });
-    if (submissions === 3)
-      return route.fulfill({ json: { success: 'false', message: 'Rejected.' } });
-    await route.fulfill({ json: { success: true } });
+    if (submissions === 3) return route.fulfill({ status: 502, json: { message: 'Rejected.' } });
+    await route.fulfill({
+      json: { message: 'Sent. Your message has been accepted for Joehan to review.' },
+    });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/contact');
@@ -223,11 +233,14 @@ test('contact errors preserve the message and allow a successful retry', async (
   expect(submissions).toBe(4);
 });
 
-test('homepage contact uses the same managed delivery without a local API', async ({ page }) => {
+test('homepage contact uses the same hosted Resend API', async ({ page }) => {
   let endpoint = '';
-  await page.route('https://formsubmit.co/ajax/**', async (route) => {
+  await configureContact(page);
+  await page.route(contactEndpoint, async (route) => {
     endpoint = route.request().url();
-    await route.fulfill({ json: { success: true } });
+    await route.fulfill({
+      json: { message: 'Sent. Your message has been accepted for Joehan to review.' },
+    });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
@@ -239,36 +252,21 @@ test('homepage contact uses the same managed delivery without a local API', asyn
   await expect(page.locator('.form-status')).toHaveText(
     'Sent. Your message has been accepted for Joehan to review.',
   );
-  expect(endpoint).toBe('https://formsubmit.co/ajax/joehanantony@gmail.com');
+  expect(endpoint).toBe(contactEndpoint);
 });
 
-test('contact without JavaScript posts privately to the managed backend', async ({
-  browser,
-  baseURL,
-}) => {
+test('contact without JavaScript retains the email fallback', async ({ browser, baseURL }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   try {
     const page = await context.newPage();
-    let submission: Record<string, string> | undefined;
-    await page.route('https://formsubmit.co/**', async (route) => {
-      expect(route.request().method()).toBe('POST');
-      expect(route.request().url()).toBe('https://formsubmit.co/joehanantony@gmail.com');
-      submission = Object.fromEntries(new URLSearchParams(route.request().postData() || ''));
-      await route.fulfill({ contentType: 'text/html', body: '<p>Backend confirmation page</p>' });
-    });
     const prefix = process.env.TEST_BASE_PATH || '';
     await page.goto(new URL(`${prefix}/contact/`, baseURL).href);
-    await page.getByLabel('name', { exact: true }).fill('No JavaScript Test');
-    await page.getByLabel('email address', { exact: true }).fill('visitor@example.com');
-    await page.getByLabel('message', { exact: true }).fill('Native POST fallback verification.');
-    await page.getByRole('button', { name: 'send message' }).click();
-    await expect(page.getByText('Backend confirmation page')).toBeVisible();
-    expect(submission).toMatchObject({
-      name: 'No JavaScript Test',
-      email: 'visitor@example.com',
-      message: 'Native POST fallback verification.',
-    });
-    expect(new URL(page.url()).search).toBe('');
+    await expect(page.locator('.contact-form .form-actions a')).toHaveAttribute(
+      'href',
+      'mailto:joehanantony@gmail.com',
+    );
+    await expect(page.locator('.contact-form')).not.toHaveAttribute('action');
+    await expect(page.locator('.contact-form')).toHaveAttribute('method', 'POST');
   } finally {
     await context.close();
   }

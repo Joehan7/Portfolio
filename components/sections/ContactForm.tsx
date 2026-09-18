@@ -46,7 +46,7 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
             ? ''
             : result === 'limited'
               ? copy.contact.limited
-              : result === 'activation' || result === 'unavailable'
+              : result === 'unavailable'
                 ? copy.contact.unavailable
                 : copy.contact.error,
         );
@@ -60,7 +60,6 @@ export function ContactForm({ enabled }: { enabled: boolean }) {
   return (
     <form
       className="contact-form"
-      action={`https://formsubmit.co/${profile.email}`}
       method="POST"
       onSubmit={(event) => void handleSubmit(submit)(event)}
       aria-busy={isSubmitting}

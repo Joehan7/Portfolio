@@ -59,21 +59,28 @@ content/visuals.json holds diagram labels. scripts/generate-assets.mjs renders t
 
 ## Configure contact delivery
 
-GitHub Pages and unconfigured normal hosting use FormSubmit's managed HTTPS form backend, addressed to `joehanantony@gmail.com`. No browser API key or Pages configuration change is needed. Confirm the recipient once using FormSubmit's "Activate Form" email. An activation-required response is treated as unavailable, never as successful delivery. Automated tests intercept delivery requests and do not send email.
+Both contact forms use the existing server-side Resend API. GitHub Pages remains the public site; it cannot execute an API or hold private credentials. Import this repository into a separate **Vercel** project using its existing Next.js preset and normal build (leave GITHUB_PAGES unset). Only its HTTPS `/api/contact` endpoint is used by Pages. No dependency, build, or Pages workflow change is required.
 
-The existing server-side Resend API remains available for normal hosting. To use it instead, copy .env.example to .env.local and set:
+Set these **server-only Vercel production environment variables**, then deploy:
 
-- RESEND_API_KEY
-- CONTACT_FROM — an address on a verified Resend sending domain
+- RESEND_API_KEY — a Resend sending API key
+- CONTACT_FROM — an address on your verified Resend sending domain
 - UPSTASH_REDIS_REST_URL
 - UPSTASH_REDIS_REST_TOKEN
-- NEXT_PUBLIC_SITE_URL — the final HTTPS origin
 
-The contact API checks same-origin requests, JSON format, a 16 KB payload ceiling, Zod validation, and a honeypot. Upstash supplies a shared limit of five attempts per hour. It uses Vercel’s overwritten client-IP header only on Vercel; other hosts use a conservative shared bucket. A limiter outage fails closed. No visitor text is used as HTML. Missing credentials never produce a delivered-message claim.
+Do not put these secrets in GitHub Pages, client code, or NEXT_PUBLIC_* variables. The existing Resend/Upstash dependencies are reused. Resend setup: https://resend.com/docs/send-with-nextjs and https://resend.com/docs/dashboard/domains/introduction.
 
-Without these server settings, the form submits to FormSubmit. Client validation trims names/messages and enforces field limits; the existing honeypot is discarded locally and mapped to the managed provider's `_honey` field. FormSubmit supplies its own submission validation and spam filtering; browser validation and the local honeypot are not server-side abuse controls. Resend hosting retains its existing server validation and Upstash limit. The visitor email is used as Reply-To, never as the destination. Submissions time out after 15 seconds, cannot overlap, and retain entered values on failure. Success requires an explicit provider acknowledgement; it indicates acceptance for processing, not independently verified arrival in the recipient's inbox. The mailto fallback stays available. FormSubmit processes the submitted name, email and message and documents a 30-day submission retention period at https://formsubmit.co/documentation.
+After deploying, set **only the public HTTPS endpoint URL** in `public/contact-delivery.json`, for example:
 
-If JavaScript is unavailable, the form's native POST action uses FormSubmit's standard endpoint and confirmation page. Visitor details are submitted in the request body rather than placed in the page URL.
+```json
+{ "endpoint": "https://YOUR-PRODUCTION-PROJECT.vercel.app/api/contact" }
+```
+
+Commit that public configuration through the existing Pages workflow. Keep Vercel production deployment protection off for this public endpoint. This runtime JSON is exported unchanged under /Portfolio; no build-variable injection is needed. It contains no secrets. The checked-in endpoint is intentionally empty until a real backend is provisioned: the form shows its existing unavailable state, preserves the message, and offers the existing mailto link. There is no third-party form-delivery fallback.
+
+The API allows its own origin and exactly https://joehan7.github.io, handles JSON CORS preflight, rejects other origins, limits bodies to 16 KB, validates with the existing Zod schema, and silently discards honeypots. Its existing Upstash limit allows five attempts per hour and fails closed on outages. Vercel's overwritten client-IP header supplies per-IP buckets; other hosts share a conservative bucket. Origins are an additional browser control, not authentication or a substitute for the rate limit.
+
+Resend sends plain text to **joehanantony@gmail.com**, with the visitor's email as Reply-To. Success requires a Resend message ID and no provider error; acceptance does not independently prove inbox arrival. Client validation, loading, duplicate protection, timeout, error/success UI, and retained values on failure remain unchanged. Missing config or credentials never claim delivery. Automated tests mock delivery and do not send emails. Without JavaScript, use the existing email link; the old external native form action has been removed.
 
 Set NEXT_PUBLIC_ENABLE_ANALYTICS=true only after deployment if you want Vercel Analytics and Speed Insights. They are disabled by default.
 
@@ -107,7 +114,7 @@ The existing design is preserved. Run `pnpm build:pages` to generate `out/` for 
 
 In the repository's Settings → Pages, select **GitHub Actions** as the source. `.github/workflows/pages.yml` deploys on `main` pushes or manual dispatch. The existing quality workflow remains separate. No deployment secrets are needed.
 
-GitHub Pages cannot execute `/api/contact`. The existing contact form submits directly to FormSubmit over HTTPS, retaining its email-link fallback and honest handling of activation, rejection, and transport failures. The server API source remains available in normal builds. Do not put server credentials in public build variables.
+GitHub Pages cannot execute `/api/contact`. Both forms read the public API URL from `contact-delivery.json` and submit to the separate Resend backend described above. The email-link fallback and existing states remain intact. The server API source remains available in normal builds. Do not put server credentials in public build variables.
 
 For repository-path browser checks, run `pnpm exec playwright test --config=playwright.pages.config.ts` after exporting; this serves the actual static artifact on port 3002. The Firefox project remains enabled. `node scripts/serve-pages.mjs` previews the export at http://127.0.0.1:3002/Portfolio/.
 
