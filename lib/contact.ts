@@ -19,10 +19,5 @@ export const contactSchema = z.object({
   website: z.optional(z.string().check(z.maxLength(200))),
 });
 export type ContactInput = z.infer<typeof contactSchema>;
-export const contactReady = () =>
-  process.env.GITHUB_PAGES !== 'true' && Boolean(
-    process.env.RESEND_API_KEY &&
-    process.env.CONTACT_FROM &&
-    process.env.UPSTASH_REDIS_REST_URL &&
-    process.env.UPSTASH_REDIS_REST_TOKEN,
-  );
+// Preserve existing page wiring; the transport checks the public Formspree config.
+export const contactReady = () => true;

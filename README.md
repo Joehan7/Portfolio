@@ -59,28 +59,25 @@ content/visuals.json holds diagram labels. scripts/generate-assets.mjs renders t
 
 ## Configure contact delivery
 
-Both contact forms use the existing server-side Resend API. GitHub Pages remains the public site; it cannot execute an API or hold private credentials. Import this repository into a separate **Vercel** project using its existing Next.js preset and normal build (leave GITHUB_PAGES unset). Only its HTTPS `/api/contact` endpoint is used by Pages. No dependency, build, or Pages workflow change is required.
+Both contact forms submit directly to Formspree using HTTPS JSON POST with `Accept: application/json`. GitHub Pages remains the public site; no backend, server credentials, new dependency, or build/workflow change is needed.
 
-Set these **server-only Vercel production environment variables**, then deploy:
+The configured endpoint is `https://formspree.io/f/mrpbbyae`. Its Formspree notification recipient must remain **joehanantony@gmail.com**. To create or replace a form:
 
-- RESEND_API_KEY — a Resend sending API key
-- CONTACT_FROM — an address on your verified Resend sending domain
-- UPSTASH_REDIS_REST_URL
-- UPSTASH_REDIS_REST_TOKEN
-
-Do not put these secrets in GitHub Pages, client code, or NEXT_PUBLIC_* variables. The existing Resend/Upstash dependencies are reused. Resend setup: https://resend.com/docs/send-with-nextjs and https://resend.com/docs/dashboard/domains/introduction.
-
-After deploying, set **only the public HTTPS endpoint URL** in `public/contact-delivery.json`, for example:
+1. Create a form in your own account at https://formspree.io/forms.
+2. Set its notification recipient to **joehanantony@gmail.com** and complete any email verification Formspree requires. Confirm the email-notification workflow is enabled; routing is configured in Formspree, never by visitor input.
+3. Copy its public endpoint into `public/contact-delivery.json`:
 
 ```json
-{ "endpoint": "https://YOUR-PRODUCTION-PROJECT.vercel.app/api/contact" }
+{ "endpoint": "https://formspree.io/f/YOUR_FORM_ID" }
 ```
 
-Commit that public configuration through the existing Pages workflow. Keep Vercel production deployment protection off for this public endpoint. This runtime JSON is exported unchanged under /Portfolio; no build-variable injection is needed. It contains no secrets. The checked-in endpoint is intentionally empty until a real backend is provisioned: the form shows its existing unavailable state, preserves the message, and offers the existing mailto link. There is no third-party form-delivery fallback.
+The endpoint/form ID is public and is not an API key. Do not add Formspree account credentials or management API keys to the site. This existing runtime JSON is exported unchanged under /Portfolio and read on submission. An empty or invalid endpoint shows the existing unavailable state and email fallback instead of claiming delivery. A real account-owned ID is required; do not use another person's form ID or the retired email-address endpoint format.
 
-The API allows its own origin and exactly https://joehan7.github.io, handles JSON CORS preflight, rejects other origins, limits bodies to 16 KB, validates with the existing Zod schema, and silently discards honeypots. Its existing Upstash limit allows five attempts per hour and fails closed on outages. Vercel's overwritten client-IP header supplies per-IP buckets; other hosts share a conservative bucket. Origins are an additional browser control, not authentication or a substitute for the rate limit.
+The existing field validation, loading, timeout, duplicate protection, success/error UI, and retained values on failure are unchanged. The visible fields and component markup are unchanged. The transport maps the existing website honeypot to Formspree's `_gotcha` and discards filled honeypots locally. Formspree processes the submitted name, email and message, supplies server-side spam controls and submission limits, and uses the visitor's `email` field for Reply-To. Provider rejection, CAPTCHA requirements, rate limits, timeout, and malformed responses never claim success. Acceptance requires a successful HTTP response and Formspree's success JSON acknowledgement; it does not independently prove inbox arrival.
 
-Resend sends plain text to **joehanantony@gmail.com**, with the visitor's email as Reply-To. Success requires a Resend message ID and no provider error; acceptance does not independently prove inbox arrival. Client validation, loading, duplicate protection, timeout, error/success UI, and retained values on failure remain unchanged. Missing config or credentials never claim delivery. Automated tests mock delivery and do not send emails. Without JavaScript, use the existing email link; the old external native form action has been removed.
+The obsolete contact API, private Resend/Upstash environment configuration, and contact-only server rate limiter have been removed. Installed packages are retained to avoid unrelated dependency changes. Old backend credentials are no longer read by contact delivery; they can be removed from the unused Vercel deployment. Both hosting modes use only Formspree. Automated tests mock provider requests and do not send emails. Without JavaScript, use the unchanged email-link fallback.
+
+Official references: https://help.formspree.io/articles/building-your-form/submit-forms-with-javascript-ajax, https://help.formspree.io/articles/building-your-form/email-reply-to-address, and https://help.formspree.io/articles/building-your-form/honeypot-spam-filtering.
 
 Set NEXT_PUBLIC_ENABLE_ANALYTICS=true only after deployment if you want Vercel Analytics and Speed Insights. They are disabled by default.
 
@@ -114,7 +111,7 @@ The existing design is preserved. Run `pnpm build:pages` to generate `out/` for 
 
 In the repository's Settings → Pages, select **GitHub Actions** as the source. `.github/workflows/pages.yml` deploys on `main` pushes or manual dispatch. The existing quality workflow remains separate. No deployment secrets are needed.
 
-GitHub Pages cannot execute `/api/contact`. Both forms read the public API URL from `contact-delivery.json` and submit to the separate Resend backend described above. The email-link fallback and existing states remain intact. The server API source remains available in normal builds. Do not put server credentials in public build variables.
+Both forms read the public Formspree URL from `contact-delivery.json` and submit directly over HTTPS. The existing Pages deployment architecture, email-link fallback, and contact states remain intact. No backend or private deployment secret is required.
 
 For repository-path browser checks, run `pnpm exec playwright test --config=playwright.pages.config.ts` after exporting; this serves the actual static artifact on port 3002. The Firefox project remains enabled. `node scripts/serve-pages.mjs` previews the export at http://127.0.0.1:3002/Portfolio/.
 

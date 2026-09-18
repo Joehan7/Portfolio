@@ -114,7 +114,7 @@ test('live search and no results', async ({ page }) => {
   await page.getByRole('button', { name: 'clear search' }).click();
   await expect(search).toHaveValue('');
 });
-const contactEndpoint = 'https://contact.example.com/api/contact';
+const contactEndpoint = 'https://formspree.io/f/testform';
 async function configureContact(page: import('@playwright/test').Page) {
   await page.route('**/contact-delivery.json', (route) =>
     route.fulfill({ json: { endpoint: contactEndpoint } }),
@@ -163,11 +163,11 @@ test('contact submission waits for acknowledgement and prevents duplicate sends'
     submissions++;
     const body = route.request().postDataJSON();
     expect(body.email).toBe('visitor@example.com');
-    expect(body.website).toBe('');
+    expect(body._gotcha).toBe('');
     expect(body).not.toHaveProperty('to');
     await pending;
     await route.fulfill({
-      json: { message: 'Sent. Your message has been accepted for Joehan to review.' },
+      json: { next: 'https://formspree.io/thanks' },
     });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -202,7 +202,7 @@ test('contact errors preserve the message and allow a successful retry', async (
     if (submissions === 2) return route.fulfill({ status: 429, json: { success: false } });
     if (submissions === 3) return route.fulfill({ status: 502, json: { message: 'Rejected.' } });
     await route.fulfill({
-      json: { message: 'Sent. Your message has been accepted for Joehan to review.' },
+      json: { next: 'https://formspree.io/thanks' },
     });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -233,13 +233,13 @@ test('contact errors preserve the message and allow a successful retry', async (
   expect(submissions).toBe(4);
 });
 
-test('homepage contact uses the same hosted Resend API', async ({ page }) => {
+test('homepage contact uses the same Formspree delivery', async ({ page }) => {
   let endpoint = '';
   await configureContact(page);
   await page.route(contactEndpoint, async (route) => {
     endpoint = route.request().url();
     await route.fulfill({
-      json: { message: 'Sent. Your message has been accepted for Joehan to review.' },
+      json: { next: 'https://formspree.io/thanks' },
     });
   });
   await page.emulateMedia({ reducedMotion: 'reduce' });
